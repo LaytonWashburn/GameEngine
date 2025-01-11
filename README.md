@@ -19,3 +19,9 @@ Game engine written in Rust
 
 ## Install Git 
 + https://git-scm.com/downloads
+
+## Common Terminal Commands
++ ls
++ cd
++ mkdir
++ grep
