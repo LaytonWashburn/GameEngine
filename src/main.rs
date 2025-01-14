@@ -12,7 +12,7 @@ struct Name(String);
 
 #[derive(Resource)]
 struct GreetTimer(Timer);
-
+//layton not nice 
 fn add_people(mut commands: Commands) {
     commands.spawn((Person, Name("Elaina Proctor".to_string())));
     commands.spawn((Person, Name("Renzo Hume".to_string())));
