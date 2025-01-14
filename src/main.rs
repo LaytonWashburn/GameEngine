@@ -2,7 +2,8 @@
 //// Main Entry Point Into < Insert Game Name >
 ////
 ///  
-use bevy::prelude::*;
+use bevy::{core_pipeline::bloom::Bloom, prelude::*};
+//const CAMERA_DECAY_RATE: f32 = 2.;
 
 #[derive(Component)]
 struct Person;
@@ -12,7 +13,9 @@ struct Name(String);
 
 #[derive(Resource)]
 struct GreetTimer(Timer);
-//layton not nice 
+
+
+
 fn add_people(mut commands: Commands) {
     commands.spawn((Person, Name("Elaina Proctor".to_string())));
     commands.spawn((Person, Name("Renzo Hume".to_string())));
@@ -48,9 +51,28 @@ impl Plugin for HelloPlugin {
     }
 }
 
+
+fn setup_camera(mut commands: Commands) {
+    commands.spawn((
+        Camera2d,
+         Camera {
+            hdr: true,
+            ..default()
+        },
+        Bloom :: NATURAL
+    ));
+            
+        
+    
+}
+
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugins(HelloPlugin)
+        .add_systems(Startup, setup_camera)
         .run();
 }
+
+
+
