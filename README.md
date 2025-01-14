@@ -55,3 +55,6 @@ Game engine written in Rust
 
 ## Bevy
 + https://bevyengine.org/learn/quick-start/getting-started/setup/
+
+## Bevy Flappy Bird
++ https://www.rustfinity.com/tutorials/flappy-rust/setting-up-the-project
