@@ -58,3 +58,6 @@ Game engine written in Rust
 
 ## Bevy Flappy Bird
 + https://www.rustfinity.com/tutorials/flappy-rust/setting-up-the-project
+
+## If you want pain and super long build times, use this in the Cargo.toml
++ log = {version= "*",  features =["max_level_debug","release_max_level_warn"] }
