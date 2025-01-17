@@ -1,40 +1,36 @@
-
-use bevy::transform;
 ////
 //// Main Entry Point Into < Insert Game Name >
 ////
 ///  
 /// 
-use bevy::DefaultPlugins;
-use bevy::prelude::App;
-use bevy::prelude::Commands;
-use  bevy::prelude::Startup;
-use bevy::prelude::ResMut;
-use bevy::prelude::Assets;
-use bevy::prelude::StandardMaterial;
-use bevy::prelude::Camera3d;
-use bevy::prelude::Mesh;
-use bevy::prelude::Color;
-use bevy::pbr::MeshMaterial3d;
-use bevy::prelude::Rectangle;
-use bevy::prelude::Cuboid;
-use bevy::prelude::Mesh3d;
-use bevy::prelude::Transform;
-use bevy::prelude::Quat;
-use bevy::prelude::Vec3;
+// use bevy::DefaultPlugins;
+// use bevy::prelude::App;
+// use bevy::prelude::Commands;
+// use  bevy::prelude::Startup;
+// use bevy::prelude::ResMut;
+// use bevy::prelude::Assets;
+// use bevy::prelude::StandardMaterial;
+// use bevy::prelude::Camera3d;
+// use bevy::prelude::Mesh;
+// use bevy::prelude::Color;
+// use bevy::pbr::MeshMaterial3d;
+// use bevy::prelude::Rectangle;
+// use bevy::prelude::Cuboid;
+// use bevy::prelude::Mesh3d;
+// use bevy::prelude::Transform;
+// use bevy::prelude::Quat;
+// use bevy::prelude::Vec3;
 use std::f32::consts::PI;
-
+use bevy::prelude::*;
 use bevy::{
     color::palettes::css::*,
         pbr::{CascadeShadowConfigBuilder,NotShadowCaster},
-    prelude::*,
+    //prelude::*,
     render::camera::PhysicalCameraParameters,
     image::{ImageAddressMode, ImageFilterMode, ImageSampler, ImageSamplerDescriptor},
 };
-
-
-
-
+use bevy_panorbit_camera::{ PanOrbitCamera, PanOrbitCameraPlugin, TouchControls };
+use std::f32::consts::TAU;
 
 mod cameras;
 
@@ -42,6 +38,7 @@ fn main() {
     cameras::pan_camera::test();
     App::new()
         .add_plugins(DefaultPlugins)
+        .add_plugins(PanOrbitCameraPlugin)
         .insert_resource(Parameters(PhysicalCameraParameters {
             aperture_f_stops: 1.0,
             shutter_speed_s: 1.0 / 125.0,
@@ -86,11 +83,20 @@ fn set_up(mut commands: Commands,
             MeshMaterial3d(materials.add(Color::srgb_u8(124, 144, 255))),
             Transform::from_xyz(1.0, 1.0, 1.0)
         ));
-        // camera
-        commands.spawn((
-            Camera3d::default(),
-            Transform::from_xyz(-2.5, 4.5, 9.0).looking_at(Vec3::ZERO, Vec3::Y),
-        ));
+
+        // Camera
+    commands.spawn((
+        // Note we're setting the initial position below with yaw, pitch, and radius, hence
+        // we don't set transform on the camera.
+        PanOrbitCamera::default(),
+        Transform::from_xyz(-2.5, 4.5, 9.0).looking_at(Vec3::ZERO, Vec3::Y),
+    ));
+
+        // // camera
+        // commands.spawn((
+        //     Camera3d::default(),
+        //     Transform::from_xyz(-2.5, 4.5, 9.0).looking_at(Vec3::ZERO, Vec3::Y),
+        // ));
 
         // ambient light
          commands.insert_resource(AmbientLight {
