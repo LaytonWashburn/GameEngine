@@ -129,6 +129,7 @@ fn set_up(mut commands: Commands,
         Transform::default().with_scale(Vec3::splat(-4000.0)),
         NotShadowCaster,
     ));
+    //floor big
     let mut plane: Mesh = Plane3d::default().into();
     let uv_size = 4000.0;
     let uvs = vec![[uv_size, 0.0], [0.0, 0.0], [0.0, uv_size], [uv_size; 2]];
@@ -146,7 +147,7 @@ fn set_up(mut commands: Commands,
 }
              
         
-
+//animation for light
 fn animate_light_direction(
     time: Res<Time>,
     mut query: Query<&mut Transform, With<DirectionalLight>>,
@@ -155,6 +156,7 @@ fn animate_light_direction(
         transform.rotate_y(time.delta_secs()*0.05);
     }
 }
+//texture for floor
 fn uv_debug_texture() -> Image {
     use bevy::render::{render_asset::RenderAssetUsages, render_resource::*};
     const TEXTURE_SIZE: usize = 7;
