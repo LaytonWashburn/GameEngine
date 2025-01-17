@@ -1,3 +1,5 @@
+
+use bevy::transform;
 ////
 //// Main Entry Point Into < Insert Game Name >
 ////
@@ -20,6 +22,19 @@ use bevy::prelude::Mesh3d;
 use bevy::prelude::Transform;
 use bevy::prelude::Quat;
 use bevy::prelude::Vec3;
+use std::f32::consts::PI;
+
+use bevy::{
+    color::palettes::css::*,
+        pbr::{CascadeShadowConfigBuilder,NotShadowCaster},
+    prelude::*,
+    render::camera::PhysicalCameraParameters,
+    image::{ImageAddressMode, ImageFilterMode, ImageSampler, ImageSamplerDescriptor},
+};
+
+
+
+
 
 mod cameras;
 
@@ -27,14 +42,28 @@ fn main() {
     cameras::pan_camera::test();
     App::new()
         .add_plugins(DefaultPlugins)
+        .insert_resource(Parameters(PhysicalCameraParameters {
+            aperture_f_stops: 1.0,
+            shutter_speed_s: 1.0 / 125.0,
+            sensitivity_iso: 100.0,
+            sensor_height: 0.01866,
+        }))
         .add_systems(Startup, set_up)
+        .add_systems(Update, animate_light_direction)
         .run();
+        
 }
 
 
-fn set_up(mut commands: Commands,     
+#[derive(Resource, Default, Deref, DerefMut)]
+struct Parameters(PhysicalCameraParameters);
+
+fn set_up(mut commands: Commands,  
+    //asset_server: Res<AssetServer>,   
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    mut images: ResMut<Assets<Image>>,
+    
 ){
 
         // circular base
@@ -52,11 +81,111 @@ fn set_up(mut commands: Commands,
             Transform::from_xyz(0.0, 0.0, 0.0)
         ));
         
+        commands.spawn((
+            Mesh3d(meshes.add(Cuboid::new(5.0, 5.0, 5.0))),
+            MeshMaterial3d(materials.add(Color::srgb_u8(124, 144, 255))),
+            Transform::from_xyz(1.0, 1.0, 1.0)
+        ));
         // camera
         commands.spawn((
             Camera3d::default(),
             Transform::from_xyz(-2.5, 4.5, 9.0).looking_at(Vec3::ZERO, Vec3::Y),
         ));
 
-}
+        // ambient light
+         commands.insert_resource(AmbientLight {
+             color: ORANGE_RED.into(),
+             brightness: 0.02,
+    });
+    //light
+    commands.spawn((
+        DirectionalLight {
+            illuminance: light_consts::lux::OVERCAST_DAY,
+            shadows_enabled: true,
+            ..default()
+        },
+        Transform {
+            translation: Vec3::new(0.0, 2.0, 0.0),
+            rotation: Quat::from_rotation_x(-PI / 4.),
+            ..default()
+        },
+        CascadeShadowConfigBuilder {
+            first_cascade_far_bound: 4.0,
+            maximum_distance: 10.0,
+            ..default()
+        }
+        .build(),
+    ));
+    //sky
+   
 
+    commands.spawn((
+        Mesh3d(meshes.add(Sphere::default())),
+        MeshMaterial3d(materials.add(StandardMaterial {
+            unlit: true,
+            base_color: Color::linear_rgb(0.1, 0.6, 1.0),
+            ..default()
+        })),
+        Transform::default().with_scale(Vec3::splat(-4000.0)),
+        NotShadowCaster,
+    ));
+    let mut plane: Mesh = Plane3d::default().into();
+    let uv_size = 4000.0;
+    let uvs = vec![[uv_size, 0.0], [0.0, 0.0], [0.0, uv_size], [uv_size; 2]];
+    plane.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
+    commands.spawn((
+        Mesh3d(meshes.add(plane)),
+        MeshMaterial3d(materials.add(StandardMaterial {
+            base_color: Color::WHITE,
+            perceptual_roughness: 1.0,
+            base_color_texture: Some(images.add(uv_debug_texture())),
+            ..default()
+        })),
+        Transform::from_xyz(0.0, -0.65, 0.0).with_scale(Vec3::splat(80.)),
+    ));
+}
+             
+        
+
+fn animate_light_direction(
+    time: Res<Time>,
+    mut query: Query<&mut Transform, With<DirectionalLight>>,
+){
+    for mut transform in &mut query {
+        transform.rotate_y(time.delta_secs()*0.05);
+    }
+}
+fn uv_debug_texture() -> Image {
+    use bevy::render::{render_asset::RenderAssetUsages, render_resource::*};
+    const TEXTURE_SIZE: usize = 7;
+
+    let mut palette = [
+        164, 164, 164, 255, 168, 168, 168, 255, 153, 153, 153, 255, 139, 139, 139, 255, 153, 153,
+        153, 255, 177, 177, 177, 255, 159, 159, 159, 255,
+    ];
+
+    let mut texture_data = [0; TEXTURE_SIZE * TEXTURE_SIZE * 4];
+    for y in 0..TEXTURE_SIZE {
+        let offset = TEXTURE_SIZE * y * 4;
+        texture_data[offset..(offset + TEXTURE_SIZE * 4)].copy_from_slice(&palette);
+        palette.rotate_right(12);
+    }
+    let mut img = Image::new_fill(
+        Extent3d {
+            width: TEXTURE_SIZE as u32,
+            height: TEXTURE_SIZE as u32,
+            depth_or_array_layers: 1,
+        },
+        TextureDimension::D2,
+        &texture_data,
+        TextureFormat::Rgba8UnormSrgb,
+        RenderAssetUsages::RENDER_WORLD,
+    );
+    img.sampler = ImageSampler::Descriptor(ImageSamplerDescriptor {
+        address_mode_u: ImageAddressMode::Repeat,
+        address_mode_v: ImageAddressMode::MirrorRepeat,
+        mag_filter: ImageFilterMode::Nearest,
+        ..ImageSamplerDescriptor::linear()
+    });
+    img
+}
