@@ -11,6 +11,9 @@ use bevy_rapier2d::prelude::RapierDebugRenderPlugin;
 use bevy_rapier2d::prelude::KinematicCharacterController;
 use bevy_rapier2d::prelude::KinematicCharacterControllerOutput;
 use bevy::input::ButtonInput;
+use bevy::render::render_resource::{AsBindGroup, ShaderRef};
+use bevy::sprite::Material2d;
+use bevy::sprite::AlphaMode2d;
 
 const WINDOW_WIDTH: f32 = 1024.0;
 const WINDOW_HEIGHT: f32 = 720.0;
@@ -46,15 +49,16 @@ fn main() {
         .add_plugins(RapierDebugRenderPlugin::default()) // Debug plugin
         .add_systems(Startup, setup)
         .add_systems(Update, (movement, jump, rise, fall)) // new system added
-        // .add_systems(Update, jump)
-        // .add_systems(Update, rise)
         .run();
 }
 
 fn setup(mut commands: Commands,
          mut meshes: ResMut<Assets<Mesh>>,
          mut materials: ResMut<Assets<ColorMaterial>>,
+        asset_server: Res<AssetServer>,
         ) {
+
+    let r_spartan: Handle<Image> = asset_server.load("spartan_small.png");
 
     // Plateforms
     commands.spawn(PlatformBundle::new(-100.0, Vec3::new(75.0, 200.0, 1.0)));
@@ -64,10 +68,15 @@ fn setup(mut commands: Commands,
     // Camera
     commands.spawn(Camera2d::default());
 
+
     // Ball
     commands.spawn((
         Mesh2d(meshes.add(Circle::default()).into()),
-        MeshMaterial2d(materials.add(ColorMaterial::from(COLOR_PLAYER))),
+        MeshMaterial2d(materials.add(ColorMaterial {
+            color: COLOR_PLAYER,
+            alpha_mode: AlphaMode2d::default(),
+            texture: Some(r_spartan),
+        })), // MeshMaterial2d(materials.add(ColorMaterial::from(COLOR_PLAYER)))
         Transform {
                 translation: Vec3::new(WINDOW_LEFT_X + 50.0, WINDOW_BOTTOM_Y + 30.0, 0.0),
                 scale: Vec3::new(30.0, 30.0, 1.0),
@@ -95,6 +104,27 @@ fn setup(mut commands: Commands,
     .insert(RigidBody::Fixed)
     .insert(Collider::cuboid(0.5, 0.5));
 
+}
+
+#[derive(AsBindGroup, Debug, Clone, Asset, TypePath)]
+pub struct CustomMaterial {
+    // Uniform bindings must implement `ShaderType`, which will be used to convert the value to
+    // its shader-compatible equivalent. Most core math types already implement `ShaderType`.
+    #[uniform(0)]
+    color: LinearRgba,
+    // Images can be bound as textures in shaders. If the Image's sampler is also needed, just
+    // add the sampler attribute with a different binding index.
+    #[texture(1)]
+    #[sampler(2)]
+    color_texture: Handle<Image>,
+}
+
+// All functions on `Material2d` have default impls. You only need to implement the
+// functions that are relevant for your material.
+impl Material2d for CustomMaterial {
+    fn fragment_shader() -> ShaderRef {
+        "shaders/custom_material.wgsl".into()
+    }
 }
 
 #[derive(Bundle)]
