@@ -2,7 +2,7 @@ pub struct PlayerPlugin;
 
 use std::time::Duration;
 
-use crate::animation::{AnimationIndices, animate_sprite, apply_idle_sprite, AnimationTimer, Animation};
+use crate::animation::Animation;
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 use bevy::sprite::Material2d;
@@ -37,11 +37,11 @@ impl Plugin for PlayerPlugin {
         .add_systems(Update, jump)
         .add_systems(Update, rise)
         .add_systems(Update, fall)
-        .add_systems(Update,animate_sprite)
-        .add_systems(Update,apply_idle_sprite);
+        .add_systems(Update,apply_movement_animation)
+        .add_systems(Update, apply_idle_sprite);
+        // .add_systems(Update,stop_animation_on_move);
     }
 }
-
 
 fn setup(
     mut commands: Commands,
@@ -55,9 +55,9 @@ fn setup(
                                                                                      SPRITESHEET_ROWS, None, None);
 
     let layout_handle = atlases.add(layout);
-    let animation_indices = AnimationIndices { first: 7, last: 0 };
+    // let animation_indices = AnimationIndices { first: 7, last: 0 };
     let texture_atlas:TextureAtlas = TextureAtlas{layout:layout_handle, 
-                                                  index:animation_indices.first};
+                                                  index:7};
 
     commands.spawn((    
         Sprite {
@@ -71,8 +71,6 @@ fn setup(
                 scale: Vec3::new(30.0, 30.0, 1.0),
                 ..Default::default()
         },
-        animation_indices,
-        AnimationTimer(Timer::new(Duration::new(1, 0), TimerMode::Repeating))
     ))
     .insert(RigidBody::KinematicPositionBased)
     .insert(Collider::cuboid(    // collider updated
@@ -215,9 +213,24 @@ fn apply_movement_animation(
 }
 
 
+fn apply_idle_sprite(
+    mut commands: Commands,
+    mut query: Query<(
+        Entity,
+        &KinematicCharacterControllerOutput,
+        &mut Sprite,
+    )>,
+) {
+    if query.is_empty() {
+        return;
+    }
 
-
-
+    let (player, output, mut sprite) = query.single_mut();
+    if output.desired_translation.x == 0.0 && output.grounded {
+        commands.entity(player).remove::<Animation>();
+        sprite.texture_atlas.clone().unwrap().index = SPRITE_IDX_STAND
+    }
+}
 
 
 
