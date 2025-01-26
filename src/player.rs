@@ -4,6 +4,7 @@ use std::time::Duration;
 
 use crate::animation::Animation;
 use bevy::prelude::*;
+use bevy::sprite;
 use bevy_rapier2d::prelude::*;
 use bevy::sprite::Material2d;
 use bevy::sprite::TextureAtlas;
@@ -24,6 +25,7 @@ const SPRITE_TILE_WIDTH: u32 = 128;
 const SPRITE_TILE_HEIGHT: u32 =256;
 const SPRITE_IDX_STAND: usize = 28;
 const SPRITE_IDX_WALKING: &[usize] = &[7, 0];
+const SPRITE_IDX_JUMP: usize = 35;
 const CYCLE_DELAY: Duration = Duration::from_millis(70);
 
 // const COLOR_PLAYER: Color = Color::srgb(0.60, 0.55, 0.60);
@@ -38,9 +40,17 @@ impl Plugin for PlayerPlugin {
         .add_systems(Update, rise)
         .add_systems(Update, fall)
         .add_systems(Update,apply_movement_animation)
-        .add_systems(Update, apply_idle_sprite);
-        // .add_systems(Update,stop_animation_on_move);
+        .add_systems(Update, apply_idle_sprite)
+        .add_systems(Update, apply_jump_sprite)
+        .add_systems(Update,update_direction)
+        .add_systems(Update, update_sprite_direction);
     }
+}
+
+#[derive(Component)]
+enum Direction {
+    Right,
+    Left,
 }
 
 fn setup(
@@ -78,7 +88,8 @@ fn setup(
         (SPRITE_TILE_HEIGHT as f32 * 0.01) / 2.0,
         
     ))
-    .insert(KinematicCharacterController::default());
+    .insert(KinematicCharacterController::default())
+    .insert(Direction::Right); // default direction;
 }
 
 
@@ -212,7 +223,8 @@ fn apply_movement_animation(
     }
 }
 
-
+//// Removes the animations from the entity when grounded and not moving
+/// Sets the sprite to the original position
 fn apply_idle_sprite(
     mut commands: Commands,
     mut query: Query<(
@@ -225,13 +237,64 @@ fn apply_idle_sprite(
         return;
     }
 
-    let (player, output, mut sprite) = query.single_mut();
+    let (player, output, sprite) = query.single_mut();
     if output.desired_translation.x == 0.0 && output.grounded {
         commands.entity(player).remove::<Animation>();
         sprite.texture_atlas.clone().unwrap().index = SPRITE_IDX_STAND
     }
 }
 
+fn apply_jump_sprite(
+    mut commands: Commands,
+    mut query: Query<(
+        Entity,
+        &KinematicCharacterControllerOutput,
+        &mut Sprite,
+    )>
+) {
+    if query.is_empty() {
+        return;
+    }
 
+    let (player, output, sprite) = query.single_mut();
+    if !output.grounded {
+        commands.entity(player).remove::<Animation>();
+        sprite.texture_atlas.clone().unwrap().index = SPRITE_IDX_JUMP;
+    }
+}
+
+
+fn update_direction(
+    mut commands: Commands,
+    query: Query<(Entity, &KinematicCharacterControllerOutput)>
+) {
+    if query.is_empty() {
+        return;
+    }
+
+    let (player, output) = query.single();
+
+    if output.desired_translation.x > 0.0 {
+        commands.entity(player).insert(Direction::Right);
+    } else if output.desired_translation.x < 0.0 {
+        commands.entity(player).insert(Direction::Left);
+    }
+}
+
+
+fn update_sprite_direction(mut query: Query<(&mut Sprite, &Direction)>) 
+{    
+
+    if query.is_empty() {
+        return;
+    }
+
+    let (mut sprite, direction) = query.single_mut();
+
+    match direction {
+        Direction::Right => sprite.flip_x = false,
+        &Direction::Left => sprite.flip_x = true,
+    }
+}
 
 
